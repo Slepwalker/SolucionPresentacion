@@ -1,0 +1,259 @@
+﻿
+@{
+    ViewBag.Title = "Usuarios";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<ol class="breadcrumb mb-4 mt-4">
+    <li class="breadcrumb-item"><a href="index.html">Resumen</a></li>
+    <li class="breadcrumb-item active"> Usuarios</li>
+</ol>
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-users me-1"></i> Lista de Usuarios
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-12">
+                <button type="button" class="btn btn-success" onclick="abrirModal(null)">Crear Nuevo</button>
+            </div>
+        </div>
+        <hr />
+        <table id="tabla" class="table table-bordered" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Nombres</th>
+                    <th>Apellido</th>
+                    <th>Correo</th>
+                    <th>Activo</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="FormModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="exampleModalLabel">Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+                <input id="Id"type="text" value="0" />
+
+                <div class="row g-2">
+                    <div class="col-sm-6">
+                        <label for="Nombres" class="form-label">Nombres</label>
+                        <input type="text" class="form-control" id="Nombres" placeholder="Ingrese su Nombres" autocomplete="off">
+                    </div>
+
+                    <div class="col-sm-6">
+                        <label for="Apellidos" class="form-label">Apellido</label>
+                        <input type="text" class="form-control" id="Apellidos" placeholder="Ingrese su Apellido" autocomplete="off">
+                    </div>
+
+                    <div class="col-sm-6">
+                        <label for="Email" class="form-label">Correo</label>
+                        <input type="email" class="form-control" id="Email" placeholder="Ingrese su Email" autocomplete="off">
+                    </div>
+
+                    <div class="col-sm-6">
+                        <label for="Activo" class="form-label">Activo</label>
+                        <select class="form-select" id="Activo">
+                            <option value="1">Si</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+
+                        <div id="mensajeError" class="alert alert-danger" role="alert">
+                            A simple danger alert—check it out!
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="Guardar()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script>
+
+        var tabladata;
+        var filaSeleccionada;
+
+        tabladata = $("#tabla").DataTable({
+            responsive: true,
+            ordering: false,
+            "ajax": {
+                url: '@Url.Action("listarUsuarios","Home")',
+                type: "GET",
+                dataType: "json",
+            },
+            "columns": [
+                { "data": "NomUsuario" },
+                { "data": "ApeUsuario" },
+                { "data": "Correo" },
+                {
+                    "data": "Activo", "render": function (valor) {
+                        if (valor) {
+                            return '<span class="badge bg-success">Si</span>'
+                        } else {
+                            return '<span class="badge bg-danger">No</span>'
+                        }
+                    }
+
+                },
+                {
+                    "defaultContent": '<button type="button" class="btn btn-primary btn-sm btn-editar"><i class="fas fa-pen"></i></button>' +
+                        '<button type="button" class="btn btn-danger btn-sm m-2 btn-eliminar"><i class="fas fa-trash"></i></button>',
+                    "orderable": false,
+                    "searchable": false,
+                    "width": "90px"
+                }
+            ],
+            "language": {
+                "url":"https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json"
+            }
+        });
+        function abrirModal(json) {
+
+            $("#Id").val(0);
+            $("#Nombres").val("");
+            $("#Apellidos").val("");
+            $("#Email").val("");
+            $("#Activo").val(1);
+            $("#mensajeError").hide();
+
+
+
+            if (json != null) {
+                $("#Id").val(json.IdUsuario);
+                $("#Nombres").val(json.NomUsuario);
+                $("#Apellidos").val(json.ApeUsuario);
+                $("#Email").val(json.Correo);
+                $("#Activo").val(json.Activo == true ? 1 : 0);
+            }
+
+            $("#FormModal").modal("show");
+        }
+
+        $("#tabla tbody").on("click", '.btn-editar', function () {
+            var filaSeleccionada = $(this).closest("tr");
+
+            var data = tabladata.row(filaSeleccionada).data();
+
+            abrirModal(data)
+        })
+
+        $("#tabla tbody").on("click", '.btn-eliminar', function () {
+            var usuarioSeleccionado = $(this).closest("tr");
+
+            var data = tabladata.row(usuarioSeleccionado).data();
+
+            swal({
+                title: "¿Estas Seguro?",
+                text: "¿Estas seguro de eliminar este usuario?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonClass: "btn-primary",
+                confirmButtonText: "Si",
+                cancelButtonText: "No",
+                closeOnConfirm: true
+            },
+                function () {
+                    jQuery.ajax({
+                        url: '@Url.Action("EliminarUsuario","Home")',
+                        type: "POST",
+                        data: JSON.stringify({ id: data.IdUsuario }),
+                        dataType: "json",
+                        contentType: "application/json; charset=utf-8",
+                        success: function (data) {
+                            debugger;
+                            if (data.resultado) {
+                                tabladata.row(usuarioSeleccionado).remove().draw();
+                            } else {
+                                swal("No se pudo eliminar", data.mensaje, "error")
+                            }
+                        },
+                        error: function (error) {
+                            console.log(error)
+                        }
+                    });
+                });
+
+            console.log(data);
+        })
+
+
+        function Guardar() {
+            var Usuario = {
+                IdUsuario: $("#Id").val(),
+                Activo: $("#Activo").val() == 1 ? true: false,
+                ApeUsuario: $("#Apellidos").val(),
+                Correo: $("#Email").val(),
+                NomUsuario: $("#Nombres").val(),
+            }
+            jQuery.ajax({
+                url: '@Url.Action("GuardarUsuario","Home")',
+                type: "POST",
+                data: JSON.stringify({ objeto: Usuario }),
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function (data) {
+                    $(".modal-body").LoadingOverlay("hide");
+
+                    //usuario agregar
+                    if (Usuario.IdUsuario == 0) {
+                        if (data.resultado != 0) {
+                            Usuario.IdUsuario = data.resultado;
+                            tabladata.row.add(Usuario).draw(false);
+                            $("#FormModal").modal("hide");
+                        } else {
+                            $("#mensajeError").text(data.mensaje);
+                            $("#mensajeError").show();
+                        }
+                        //usuario editar
+                    } else {
+                        if (data.resultado) {
+                            tabladata.row(filaSeleccionada).data(Usuario).draw(false);
+                            filaSeleccionada = null;
+                            $("#FormModal").modal("hide");
+                        } else {
+                            $("#mensajeError").text(data.mensaje);
+                            $("#mensajeError").show();
+                        }
+                    }
+                },
+                error: function (error) {
+                    $(".modal-body").LoadingOverlay("hide");
+                    $("mensajeError").text("Error Ajax");
+                    $("mensajeError").show();
+                },
+                beforeSend: function () {
+                    $(".modal-body").LoadingOverlay("show", {
+                        imageResizeFactor: 2,
+                        text: "Cargando...",
+                        size: 14
+                    })
+                }
+            })
+
+        }
+
+
+    </script>
+}
